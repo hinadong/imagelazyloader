@@ -3,7 +3,7 @@ Image Lazy Loader
 
 HTML 图片延迟加载组件，当页面滚动到图片位置时才加载图片。
 
-#### 应用 <img> 标签
+#### 应用 &lt;img&gt; 标签
 ```
 <img src="images/blank.gif" data-src="images/original_image.jpg" />
 ```

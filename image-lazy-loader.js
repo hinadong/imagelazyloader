@@ -97,6 +97,7 @@
         },
 
         destroy: function() {
+            this.destroyed = true;
             window.removeEventListener('scroll', this.onScrollProxy, false);
             this.elements = null;
         }

@@ -1,23 +1,7 @@
 (function(window) {
 
     var isAndroid = /Android[\s\/]+[\d.]+/i.test(window.navigator.userAgent),
-        dummyStyle = document.createElement('div').style,
-        vendor = (function () {
-            var vendors = 't,webkitT,MozT,msT,OT'.split(','),
-                t,
-                i = 0,
-                l = vendors.length;
-
-            for ( ; i < l; i++ ) {
-                t = vendors[i] + 'ransform';
-                if ( t in dummyStyle ) {
-                    return vendors[i].substr(0, vendors[i].length - 1);
-                }
-            }
-
-            return false;
-        })(),
-        cssVendor = vendor ? '-' + vendor.toLowerCase() + '-' : '',
+        vendor = window.vendor,
         proxy = function(fn, scope) {
             return function() {
                 return fn.apply(scope, arguments);
@@ -73,13 +57,14 @@
         },
 
         loadImage: function(image) {
-            if (!isAndroid && this.useFade) {
+            if (!isAndroid && this.useFade && image.getAttribute(this.realSrcAttribute) != '') {
                 image.style.opacity = '0';
                 image.addEventListener('load', function() {
-                    image.style.cssText = 'opacity:1;' + cssVendor + 'transition:opacity 200ms;';
+                    image.style.cssText = 'opacity:1;' + vendor.cssVendor + 'transition:opacity 200ms;';
                 }, false);
             }
             image.src = image.getAttribute(this.realSrcAttribute);
+            image.setAttribute('data-lazy-loaded', '1');
         },
 
         scan: function(ct) {
@@ -87,7 +72,7 @@
             var imgs = ct.querySelectorAll('img[' + this.realSrcAttribute + ']') || [];
             imgs = Array.prototype.slice.call(imgs, 0);
             imgs = imgs.filter(function(el) {
-                if (this.elements.indexOf(el) != -1) {
+                if (this.elements.indexOf(el) != -1 || el.getAttribute('data-lazy-loaded') == '1') {
                     return false;
                 }
                 return true;

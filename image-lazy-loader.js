@@ -1,5 +1,4 @@
 (function(window) {
-
     var isAndroid = /Android[\s\/]+[\d.]+/i.test(window.navigator.userAgent),
         dummyStyle = document.createElement('div').style,
         vendor = (function() {
@@ -17,7 +16,6 @@
 
             return false;
         })(),
-        cssVendor = vendor ? '-' + vendor.toLowerCase() + '-' : '',
         proxy = function(fn, scope) {
             return function() {
                 return fn.apply(scope, arguments);
@@ -34,8 +32,12 @@
         window.addEventListener('scroll', this.onScrollProxy, false);
         this.maxScrollY = 0;
 
+        if (isAndroid) { // 在android下，opacity动画效果比较差
+            this.useFade = false;
+        }
+
         this.elements = [];
-        this.lazyElements = [];
+        this.lazyElements = {};
         this.scan(document.body);
     };
 
@@ -47,48 +49,78 @@
 
         useFade: true,
 
+        // private
         onScroll: function(e) {
             var scrollY = window.pageYOffset;
             if (scrollY > this.maxScrollY) {
-                clearTimeout(this.lazyLoadTimeout);
                 this.scrollAction();
                 this.maxScrollY = scrollY;
             }
         },
 
+        // private
         scrollAction: function() {
-            this.elements = this.elements.filter(function(el) {
-                if ((this.range + window.innerHeight) >= (el.getBoundingClientRect().top - document.documentElement.clientTop)) {
-                    this.lazyElements.push(el);
+            clearTimeout(this.lazyLoadTimeout);
+            this.elements = this.elements.filter(function(img) {
+                if ((this.range + window.innerHeight) >= (img.getBoundingClientRect().top - document.documentElement.clientTop)) {
+                    var realSrc = img.getAttribute(this.realSrcAttribute);
+                    if (realSrc) {
+                        if (this.lazyElements[realSrc]) {
+                            this.lazyElements[realSrc].push(img);
+                        } else {
+                            this.lazyElements[realSrc] = [img];
+                        }
+                    }
                     return false;
                 }
                 return true;
             }, this);
-            this.lazyLoadTimeout = setTimeout(proxy(this.lazyLoad, this), isAndroid ? 500 : 0);
+            this.lazyLoadTimeout = setTimeout(proxy(this.loadImage, this), isAndroid ? 500 : 0);
         },
 
-        lazyLoad: function() {
-            this.lazyElements.forEach(proxy(this.loadImage, this));
-            this.lazyElements = [];
-        },
+        // private
+        loadImage: function() {
+            var img, realSrc, imgs;
+            for (realSrc in this.lazyElements) {
+                imgs = this.lazyElements[realSrc];
+                img = imgs.shift();
+                if (imgs.length == 0) {
+                    delete this.lazyElements[realSrc];
+                }
 
-        loadImage: function(image) {
-            if (!isAndroid && this.useFade && image.getAttribute(this.realSrcAttribute) != '') {
-                image.style.opacity = '0';
-                image.addEventListener('load', function() {
-                    image.style.cssText = 'opacity:1;' + cssVendor + 'transition:opacity 200ms;';
-                }, false);
+                img.addEventListener('load', proxy(this.onImageLoad, this), false);
+                if (this.useFade) {
+                    img.style.opacity = '0';
+                }
+                img.src = realSrc;
+                img.setAttribute('data-lazy-load-completed', '1');
             }
-            image.src = image.getAttribute(this.realSrcAttribute);
-            image.setAttribute('data-lazy-loaded', '1');
+        },
+
+        onImageLoad: function(e) {
+            var img = e.target,
+                realSrc = img.getAttribute(this.realSrcAttribute),
+                imgs = this.lazyElements[realSrc];
+
+            if (this.useFade) {
+                img.style[vendor + 'Transition'] = 'opacity 200ms';
+                img.style.opacity = 1;
+            }
+            if (imgs) {
+                imgs.forEach(function(img) {
+                    img.src = realSrc;
+                });
+                delete this.lazyElements[realSrc];
+            }
         },
 
         scan: function(ct) {
+            var imgs;
             ct = ct || document.body;
-            var imgs = ct.querySelectorAll('img[' + this.realSrcAttribute + ']') || [];
+            imgs = ct.querySelectorAll('img[' + this.realSrcAttribute + ']') || [];
             imgs = Array.prototype.slice.call(imgs, 0);
-            imgs = imgs.filter(function(el) {
-                if (this.elements.indexOf(el) != -1 || el.getAttribute('data-lazy-loaded') == '1') {
+            imgs = imgs.filter(function(img) {
+                if (this.elements.indexOf(img) != -1 || img.getAttribute('data-lazy-load-completed') == '1') {
                     return false;
                 }
                 return true;
@@ -98,9 +130,11 @@
         },
 
         destroy: function() {
-            this.destroyed = true;
-            window.removeEventListener('scroll', this.onScrollProxy, false);
-            this.elements = null;
+            if (!this.destroyed) {
+                this.destroyed = true;
+                window.removeEventListener('scroll', this.onScrollProxy, false);
+                this.elements = this.lazyElements = null;
+            }
         }
     };
 

@@ -98,19 +98,29 @@
         },
 
         onImageLoad: function(e) {
-            var img = e.target,
-                realSrc = img.getAttribute(this.realSrcAttribute),
-                imgs = this.lazyElements[realSrc];
+            var me = this,
+                img = e.target,
+                realSrc = img.getAttribute(me.realSrcAttribute),
+                imgs = me.lazyElements[realSrc];
 
+            me.showImage(img);
+
+            if (imgs) {
+                imgs.forEach(function(el) {
+                    if (me.useFade) {
+                        el.style.opacity = '0';
+                    }
+                    el.src = realSrc;
+                    me.showImage(el);
+                });
+                delete me.lazyElements[realSrc];
+            }
+        },
+
+        showImage: function(img) {
             if (this.useFade) {
                 img.style[vendor + 'Transition'] = 'opacity 200ms';
                 img.style.opacity = 1;
-            }
-            if (imgs) {
-                imgs.forEach(function(img) {
-                    img.src = realSrc;
-                });
-                delete this.lazyElements[realSrc];
             }
         },
 

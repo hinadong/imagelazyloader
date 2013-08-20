@@ -97,6 +97,7 @@
             }
         },
 
+        // private
         onImageLoad: function(e) {
             var me = this,
                 img = e.target,
@@ -117,6 +118,7 @@
             }
         },
 
+        // private
         showImage: function(img) {
             if (this.useFade) {
                 img.style[vendor + 'Transition'] = 'opacity 200ms';

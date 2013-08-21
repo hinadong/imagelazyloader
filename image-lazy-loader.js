@@ -87,13 +87,8 @@
                 if (imgs.length == 0) {
                     delete this.lazyElements[realSrc];
                 }
-
                 img.addEventListener('load', proxy(this.onImageLoad, this), false);
-                if (this.useFade) {
-                    img.style.opacity = '0';
-                }
-                img.src = realSrc;
-                img.setAttribute('data-lazy-load-completed', '1');
+                this.setImageSrc(img, realSrc);
             }
         },
 
@@ -107,15 +102,21 @@
             me.showImage(img);
 
             if (imgs) {
-                imgs.forEach(function(el) {
-                    if (me.useFade) {
-                        el.style.opacity = '0';
-                    }
-                    el.src = realSrc;
-                    me.showImage(el);
+                imgs.forEach(function(i) {
+                    me.setImageSrc(i, realSrc);
+                    me.showImage(i);
                 });
                 delete me.lazyElements[realSrc];
             }
+        },
+
+        // private
+        setImageSrc: function(img, realSrc) {
+            if (this.useFade) {
+                img.style.opacity = '0';
+            }
+            img.src = realSrc;
+            img.setAttribute('data-lazy-load-completed', '1');
         },
 
         // private

@@ -53,8 +53,8 @@
         onScroll: function(e) {
             var scrollY = window.pageYOffset;
             if (scrollY > this.maxScrollY) {
-                this.scrollAction();
                 this.maxScrollY = scrollY;
+                this.scrollAction();
             }
         },
 

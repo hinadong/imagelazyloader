@@ -27,9 +27,10 @@
         for (var o in config) {
             this[o] = config[o];
         }
+        this.ct = document.body;
 
-        this.onScrollProxy = proxy(this.onScroll, this);
-        window.addEventListener('scroll', this.onScrollProxy, false);
+        this._onScroll = proxy(this.onScroll, this);
+        window.addEventListener('scroll', this._onScroll, false);
         this.maxScrollY = 0;
 
         if (isAndroid) { // 在android下，opacity动画效果比较差
@@ -38,7 +39,10 @@
 
         this.elements = [];
         this.lazyElements = {};
-        this.scan(document.body);
+        this.scan(this.ct);
+
+        this._onPageShow = proxy(this.onPageShow, this);
+        window.addEventListener('pageshow', this._onPageShow, false);
     };
 
     ImageLazyLoader.prototype = {
@@ -49,8 +53,13 @@
 
         useFade: true,
 
+        onPageShow: function() {
+            this.maxScrollY = 0;
+            this.scan(this.ct);
+        },
+
         // private
-        onScroll: function(e) {
+        onScroll: function() {
             var scrollY = window.pageYOffset;
             if (scrollY > this.maxScrollY) {
                 this.maxScrollY = scrollY;
@@ -116,7 +125,6 @@
                 img.style.opacity = '0';
             }
             img.src = realSrc;
-            img.setAttribute('data-lazy-load-completed', '1');
         },
 
         // private
@@ -125,6 +133,7 @@
                 img.style[vendor + 'Transition'] = 'opacity 200ms';
                 img.style.opacity = 1;
             }
+            img.setAttribute('data-lazy-load-completed', '1');
         },
 
         scan: function(ct) {
@@ -145,7 +154,8 @@
         destroy: function() {
             if (!this.destroyed) {
                 this.destroyed = true;
-                window.removeEventListener('scroll', this.onScrollProxy, false);
+                window.removeEventListener('scroll', this._onScroll, false);
+                window.removeEventListener('pageshow', this._onPageShow, false);
                 this.elements = this.lazyElements = null;
             }
         }

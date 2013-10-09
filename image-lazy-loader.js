@@ -1,5 +1,5 @@
 (function(window) {
-    var isAndroid = /Android[\s\/]+[\d.]+/i.test(window.navigator.userAgent),
+    var isAndroid = /Android/i.test(window.navigator.userAgent),
         dummyStyle = document.createElement('div').style,
         vendor = (function() {
             var vendors = 't,webkitT,MozT,msT,OT'.split(','),
@@ -53,6 +53,7 @@
 
         useFade: true,
 
+        // private
         onPageShow: function() {
             this.maxScrollY = 0;
             this.scan(this.ct);

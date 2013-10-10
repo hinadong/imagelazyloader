@@ -1,7 +1,7 @@
 {
     "name": "imagelazyloader",
     "description": "Lazy load images in mobile",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "homepage": "https://github.com/maxzhang/imagelazyloader",
     "author": "Max Zhang <zhangdaiping@gmail.com>",
     "respository": {

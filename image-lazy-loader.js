@@ -98,14 +98,18 @@
                     delete this.lazyElements[realSrc];
                 }
                 img.addEventListener('load', proxy(this.onImageLoad, this), false);
-                this.setImageSrc(img, realSrc);
+                if (img.src != realSrc) {
+                    this.setImageSrc(img, realSrc);
+                } else {
+                    this.onImageLoad(img);
+                }
             }
         },
 
         // private
         onImageLoad: function(e) {
             var me = this,
-                img = e.target,
+                img = e.target || e,
                 realSrc = img.getAttribute(me.realSrcAttribute),
                 imgs = me.lazyElements[realSrc];
 

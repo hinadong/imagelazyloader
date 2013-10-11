@@ -94,7 +94,7 @@
             for (realSrc in this.lazyElements) {
                 imgs = this.lazyElements[realSrc];
                 img = imgs.shift();
-                if (imgs.length == 0) {
+                if (imgs.length === 0) {
                     delete this.lazyElements[realSrc];
                 }
                 img.addEventListener('load', proxy(this.onImageLoad, this), false);

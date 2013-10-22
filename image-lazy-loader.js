@@ -16,6 +16,27 @@
 
             return false;
         })(),
+        transitionEndEvent = (function() {
+            if (vendor == 'webkit' || vendor === 'O') {
+                return vendor.toLowerCase() + 'TransitionEnd';
+            }
+            return 'transitionend';
+        }()),
+        listenTransition = function(target, duration, callbackFn) {
+            var me = this,
+                clear = function() {
+                    if (target.transitionTimer) clearTimeout(target.transitionTimer);
+                    target.transitionTimer = null;
+                    target.removeEventListener(transitionEndEvent, handler, false);
+                },
+                handler = function() {
+                    clear();
+                    if (callbackFn) callbackFn.call(me);
+                };
+            clear();
+            target.addEventListener(transitionEndEvent, handler, false);
+            target.transitionTimer = setTimeout(handler, duration + 100);
+        },
         proxy = function(fn, scope) {
             return function() {
                 return fn.apply(scope, arguments);
@@ -29,8 +50,8 @@
         }
         this.ct = document.body;
 
-        this._onScroll = proxy(this.onScroll, this);
-        window.addEventListener('scroll', this._onScroll, false);
+        this._onScroll_ = proxy(this._onScroll, this);
+        window.addEventListener('scroll', this._onScroll_, false);
         this.maxScrollY = 0;
 
         if (isAndroid) { // 在android下，opacity动画效果比较差
@@ -41,35 +62,33 @@
         this.lazyElements = {};
         this.scan(this.ct);
 
-        this._onPageShow = proxy(this.onPageShow, this);
-        window.addEventListener('pageshow', this._onPageShow, false);
+        this._onPageShow_ = proxy(this._onPageShow, this);
+        window.addEventListener('pageshow', this._onPageShow_, false);
     };
 
     ImageLazyLoader.prototype = {
-
         range: 200,
 
         realSrcAttribute: 'data-src',
 
         useFade: true,
 
-        // private
-        onPageShow: function() {
-            this.maxScrollY = 0;
-            this.scan(this.ct);
-        },
-
-        // private
-        onScroll: function() {
-            var scrollY = window.pageYOffset || window.scrollY;
-            if (scrollY > this.maxScrollY) {
-                this.maxScrollY = scrollY;
-                this.scrollAction();
+        _onPageShow: function(e) {
+            if (e.persisted) {
+                this.maxScrollY = 0;
+                this.scan(this.ct);
             }
         },
 
-        // private
-        scrollAction: function() {
+        _onScroll: function() {
+            var scrollY = window.pageYOffset || window.scrollY;
+            if (scrollY > this.maxScrollY) {
+                this.maxScrollY = scrollY;
+                this._scrollAction();
+            }
+        },
+
+        _scrollAction: function() {
             clearTimeout(this.lazyLoadTimeout);
             this.elements = this.elements.filter(function(img) {
                 if ((this.range + window.innerHeight) >= (img.getBoundingClientRect().top - document.documentElement.clientTop)) {
@@ -85,11 +104,10 @@
                 }
                 return true;
             }, this);
-            this.lazyLoadTimeout = setTimeout(proxy(this.loadImage, this), isAndroid ? 500 : 0);
+            this.lazyLoadTimeout = setTimeout(proxy(this._loadImage, this), isAndroid ? 500 : 0);
         },
 
-        // private
-        loadImage: function() {
+        _loadImage: function() {
             var img, realSrc, imgs;
             for (realSrc in this.lazyElements) {
                 imgs = this.lazyElements[realSrc];
@@ -97,48 +115,52 @@
                 if (imgs.length === 0) {
                     delete this.lazyElements[realSrc];
                 }
-                img.addEventListener('load', proxy(this.onImageLoad, this), false);
+                img.addEventListener('load', proxy(this._onImageLoad, this), false);
                 if (img.src != realSrc) {
-                    this.setImageSrc(img, realSrc);
+                    this._setImageSrc(img, realSrc);
                 } else {
-                    this.onImageLoad(img);
+                    this._onImageLoad(img);
                 }
             }
         },
 
-        // private
-        onImageLoad: function(e) {
+        _onImageLoad: function(e) {
             var me = this,
                 img = e.target || e,
                 realSrc = img.getAttribute(me.realSrcAttribute),
                 imgs = me.lazyElements[realSrc];
 
-            me.showImage(img);
+            me._showImage(img);
 
             if (imgs) {
                 imgs.forEach(function(i) {
-                    me.setImageSrc(i, realSrc);
-                    me.showImage(i);
+                    me._setImageSrc(i, realSrc);
+                    me._showImage(i);
                 });
                 delete me.lazyElements[realSrc];
             }
         },
 
-        // private
-        setImageSrc: function(img, realSrc) {
+        _setImageSrc: function(img, realSrc) {
             if (this.useFade) {
                 img.style.opacity = '0';
             }
             img.src = realSrc;
         },
 
-        // private
-        showImage: function(img) {
-            if (this.useFade) {
+        _showImage: function(img) {
+            var me = this,
+                    cb = function() {
+                    img.setAttribute('data-lazy-load-completed', '1');
+                    if (me.onImageLoad) me.onImageLoad(img);
+                };
+            if (me.useFade) {
                 img.style[vendor + 'Transition'] = 'opacity 200ms';
                 img.style.opacity = 1;
+                listenTransition(img, 200, cb);
+            } else {
+                cb();
             }
-            img.setAttribute('data-lazy-load-completed', '1');
         },
 
         scan: function(ct) {
@@ -153,14 +175,14 @@
                 return true;
             }, this);
             this.elements = this.elements.concat(imgs);
-            this.scrollAction();
+            this._scrollAction();
         },
 
         destroy: function() {
             if (!this.destroyed) {
                 this.destroyed = true;
-                window.removeEventListener('scroll', this._onScroll, false);
-                window.removeEventListener('pageshow', this._onPageShow, false);
+                window.removeEventListener('scroll', this._onScroll_, false);
+                window.removeEventListener('pageshow', this._onPageShow_, false);
                 this.elements = this.lazyElements = null;
             }
         }

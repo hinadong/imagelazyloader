@@ -150,7 +150,7 @@
 
         _showImage: function(img) {
             var me = this,
-                    cb = function() {
+                cb = function() {
                     img.setAttribute('data-lazy-load-completed', '1');
                     if (me.onImageLoad) me.onImageLoad(img);
                 };

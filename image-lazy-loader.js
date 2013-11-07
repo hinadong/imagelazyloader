@@ -81,11 +81,15 @@
         },
 
         _onScroll: function() {
-            var scrollY = window.pageYOffset || window.scrollY;
+            var scrollY = this.getScrollY();
             if (scrollY > this.maxScrollY) {
                 this.maxScrollY = scrollY;
                 this._scrollAction();
             }
+        },
+
+        getScrollY: function() {
+            return window.pageYOffset || window.scrollY;
         },
 
         _scrollAction: function() {
@@ -150,7 +154,7 @@
 
         _showImage: function(img) {
             var me = this,
-                    cb = function() {
+                cb = function() {
                     img.setAttribute('data-lazy-load-completed', '1');
                     if (me.onImageLoad) me.onImageLoad(img);
                 };

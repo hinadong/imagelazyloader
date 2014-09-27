@@ -37,9 +37,10 @@
             target.addEventListener(transitionEndEvent, handler, false);
             target.transitionTimer = setTimeout(handler, duration + 100);
         },
-        proxy = function(fn, scope) {
+        proxy = function(fn, scope, ext) {
             return function() {
-                return fn.apply(scope, arguments);
+                var narg = ext ? Array.prototype.concat.call(arguments, ext) : arguments;
+                return fn.apply(scope, narg);
             };
         };
 
@@ -119,7 +120,17 @@
                 if (imgs.length === 0) {
                     delete this.lazyElements[realSrc];
                 }
-                img.addEventListener('load', proxy(this._onImageLoad, this), false);
+                if(img.nodeName.toLowerCase() == 'img' && img.nodeType == 1){
+                    img.addEventListener('load', proxy(this._onImageLoad, this), false);
+                }else if(img.nodeType == 1){
+                    var timg = img;
+                    img = new Image;
+                    img.setAttribute(this.realSrcAttribute, timg.getAttribute(this.realSrcAttribute));
+                    img.addEventListener('load', proxy(this._onImageLoad, this, timg), false);
+                }else{
+                    continue;
+                }
+                
                 if (img.src != realSrc) {
                     this._setImageSrc(img, realSrc);
                 } else {
@@ -128,9 +139,9 @@
             }
         },
 
-        _onImageLoad: function(e) {
+        _onImageLoad: function(e,vimg) {
             var me = this,
-                img = e.target || e,
+                img = vimg || e.target || e,
                 realSrc = img.getAttribute(me.realSrcAttribute),
                 imgs = me.lazyElements[realSrc];
 
@@ -138,26 +149,36 @@
 
             if (imgs) {
                 imgs.forEach(function(i) {
-                    me._setImageSrc(i, realSrc);
+                    if(i.nodeName.toLowerCase() == 'img'){
+                        me._setImageSrc(i, realSrc);   
+                    }
                     me._showImage(i);
                 });
                 delete me.lazyElements[realSrc];
             }
         },
-
         _setImageSrc: function(img, realSrc) {
             if (this.useFade) {
                 img.style.opacity = '0';
             }
             img.src = realSrc;
         },
-
+        _setImageBg: function(img, realSrc){
+            if (img) {
+                img.style.backgroundImage = 'url(' + realSrc + ')';
+            }
+        },
         _showImage: function(img) {
             var me = this,
                 cb = function() {
                     img.setAttribute('data-lazy-load-completed', '1');
                     if (me.onImageLoad) me.onImageLoad(img);
                 };
+            if(img.nodeName.toLowerCase() == 'img'){
+                this._setImageBg(img,img.Attribute(this.realSrcAttribute));
+                cb();
+                return;
+            }
             if (me.useFade) {
                 img.style[vendor + 'Transition'] = 'opacity 200ms';
                 img.style.opacity = 1;
@@ -173,7 +194,7 @@
             imgs = ct.querySelectorAll('img[' + this.realSrcAttribute + ']') || [];
             imgs = Array.prototype.slice.call(imgs, 0);
             imgs = imgs.filter(function(img) {
-                if (this.elements.indexOf(img) != -1 || img.getAttribute('data-lazy-load-completed') == '1') {
+                if (img.getAttribute('data-lazy-load-completed') == '1') {
                     return false;
                 }
                 return true;

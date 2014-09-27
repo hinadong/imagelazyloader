@@ -174,8 +174,8 @@
                     img.setAttribute('data-lazy-load-completed', '1');
                     if (me.onImageLoad) me.onImageLoad(img);
                 };
-            if(img.nodeName.toLowerCase() == 'img'){
-                this._setImageBg(img,img.Attribute(this.realSrcAttribute));
+            if(img.nodeName.toLowerCase() != 'img'){
+                this._setImageBg(img,img.getAttribute(this.realSrcAttribute));
                 cb();
                 return;
             }
@@ -191,7 +191,7 @@
         scan: function(ct) {
             var imgs;
             ct = ct || document.body;
-            imgs = ct.querySelectorAll('img[' + this.realSrcAttribute + ']') || [];
+            imgs = ct.querySelectorAll('[' + this.realSrcAttribute + ']') || [];
             imgs = Array.prototype.slice.call(imgs, 0);
             imgs = imgs.filter(function(img) {
                 if (img.getAttribute('data-lazy-load-completed') == '1') {
